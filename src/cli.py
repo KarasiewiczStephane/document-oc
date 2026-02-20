@@ -11,6 +11,7 @@ import sys
 import time
 from pathlib import Path
 
+from src.benchmark.evaluator import Evaluator, load_ground_truth
 from src.extraction.hybrid import HybridExtractor
 from src.ocr.document_processor import DocumentProcessor
 from src.utils.config import load_config
@@ -254,6 +255,62 @@ def extract_single(
     }
 
 
+def _run_benchmark(
+    input_dir: Path,
+    ground_truth_path: Path,
+    document_type: str = "invoice",
+    use_ml: bool = True,
+    output_path: Path | None = None,
+) -> None:
+    """Run benchmark evaluation on a folder of documents.
+
+    Args:
+        input_dir: Directory containing document files.
+        ground_truth_path: Path to the ground truth labels file.
+        document_type: Document type for extraction.
+        use_ml: Whether to use ML extraction.
+        output_path: Optional path for the report file.
+    """
+    config = load_config()
+    processor = DocumentProcessor(config)
+    extractor = HybridExtractor(config.extraction)
+
+    ground_truth = load_ground_truth(ground_truth_path)
+    files = _find_documents(input_dir)
+
+    predictions: dict[str, dict[str, str]] = {}
+    total_time = 0.0
+
+    for file_path in files:
+        start = time.time()
+        try:
+            doc_result = processor.process(file_path, file_path.name)
+            fields: dict[str, str] = {}
+            for page in doc_result.pages:
+                extraction = extractor.extract(
+                    image=None,
+                    ocr_text=page.ocr_result.text,
+                    ocr_words=(
+                        page.ocr_result.words if page.ocr_result.words else None
+                    ),
+                    ocr_confidence=page.ocr_result.confidence,
+                    use_ml=use_ml,
+                )
+                for f in extraction.fields:
+                    fields[f.field_name] = f.value
+            predictions[file_path.name] = fields
+        except Exception as exc:
+            logger.error("Failed to process %s: %s", file_path.name, exc)
+        total_time += time.time() - start
+
+    evaluator = Evaluator()
+    result = evaluator.evaluate(predictions, ground_truth)
+    result.avg_processing_time_ms = (total_time / len(files) * 1000) if files else 0.0
+
+    report = evaluator.generate_report(result, output_path)
+    print(report)
+
+
 def main(argv: list[str] | None = None) -> None:
     """Parse CLI arguments and dispatch to the appropriate command.
 
@@ -293,6 +350,28 @@ def main(argv: list[str] | None = None) -> None:
         "-v", "--verbose", action="store_true", help="Verbose output"
     )
 
+    bench_parser = subparsers.add_parser(
+        "benchmark", help="Run accuracy benchmark against ground truth"
+    )
+    bench_parser.add_argument(
+        "input_dir", type=Path, help="Directory with document files"
+    )
+    bench_parser.add_argument(
+        "ground_truth", type=Path, help="Ground truth file (JSON or CSV)"
+    )
+    bench_parser.add_argument(
+        "-t",
+        "--type",
+        choices=["invoice", "receipt", "form"],
+        default="invoice",
+        dest="doc_type",
+        help="Document type (default: invoice)",
+    )
+    bench_parser.add_argument(
+        "--no-ml", action="store_true", help="Disable ML extraction"
+    )
+    bench_parser.add_argument("-o", "--output", type=Path, help="Output report file")
+
     single_parser = subparsers.add_parser("extract", help="Process a single document")
     single_parser.add_argument("file", type=Path, help="Document file to process")
     single_parser.add_argument(
@@ -322,6 +401,20 @@ def main(argv: list[str] | None = None) -> None:
             args.doc_type,
             not args.no_ml,
             args.verbose,
+        )
+    elif args.command == "benchmark":
+        if not args.input_dir.is_dir():
+            print(f"Error: {args.input_dir} is not a directory", file=sys.stderr)
+            sys.exit(1)
+        if not args.ground_truth.exists():
+            print(f"Error: {args.ground_truth} does not exist", file=sys.stderr)
+            sys.exit(1)
+        _run_benchmark(
+            args.input_dir,
+            args.ground_truth,
+            args.doc_type,
+            not args.no_ml,
+            args.output,
         )
     elif args.command == "extract":
         if not args.file.exists():
