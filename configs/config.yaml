@@ -1,0 +1,27 @@
+preprocessing:
+  deskew_enabled: true
+  denoise_enabled: true
+  denoise_method: bilateral
+  binarize_enabled: true
+  binarize_method: adaptive
+  contrast_enabled: true
+  clahe_clip_limit: 2.0
+  clahe_tile_size: 8
+
+ocr:
+  default_lang: eng
+  psm: 3
+  pdf_dpi: 300
+
+extraction:
+  use_ml: true
+  model_name: microsoft/layoutlm-base-uncased
+  ml_weight: 0.6
+  rule_weight: 0.4
+  confidence_threshold: 0.5
+
+validation:
+  rules_path: configs/validation_rules.yaml
+  templates_path: configs/templates.yaml
+
+log_level: INFO

@@ -1,0 +1,27 @@
+invoice:
+  date:
+    - type: date_format
+    - type: required
+  total_amount:
+    - type: positive_amount
+    - type: required
+  vendor:
+    - type: required
+  email:
+    - type: email
+  phone:
+    - type: phone
+
+receipt:
+  date:
+    - type: date_format
+  total_amount:
+    - type: positive_amount
+  vendor:
+    - type: required
+
+form:
+  date:
+    - type: date_format
+  email:
+    - type: email
