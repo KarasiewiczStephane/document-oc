@@ -1,0 +1,24 @@
+standard_invoice:
+  identifiers:
+    - "Invoice"
+    - "Bill To"
+    - "Total"
+    - "Due Date"
+  min_confidence: 0.5
+  fields:
+    date: "(?:Invoice\\s*Date|Date)[:\\s]*(\\S+)"
+    vendor: "^([A-Z][A-Za-z\\s]+)$"
+    total_amount: "(?:Total)[:\\s]*\\$?\\s*([\\d,]+\\.\\d{2})"
+    invoice_number: "(?:Invoice|Inv)[\\s#:]*(\\S+)"
+
+receipt:
+  identifiers:
+    - "Receipt"
+    - "Thank you"
+    - "Total"
+    - "Subtotal"
+  min_confidence: 0.5
+  fields:
+    date: "(?:Date)[:\\s]*(\\S+)"
+    total_amount: "(?:Total)[:\\s]*\\$?\\s*([\\d,]+\\.\\d{2})"
+    vendor: "^([A-Z][A-Za-z\\s]+)$"
