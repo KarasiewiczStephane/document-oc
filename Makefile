@@ -1,4 +1,4 @@
-.PHONY: install test lint clean run docker docker-up docker-down
+.PHONY: install test lint clean run dashboard docker docker-up docker-down
 
 install:
 	pip install -r requirements.txt
@@ -16,6 +16,9 @@ clean:
 
 run:
 	python -m src.main
+
+dashboard:
+	streamlit run src/dashboard/app.py
 
 docker:
 	docker build -t document-ocr .

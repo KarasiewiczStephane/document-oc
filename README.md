@@ -11,35 +11,46 @@
 - **Hybrid Pipeline**: Merges ML and rule-based results with weighted confidence scoring
 - **Validation Engine**: Configurable YAML rules with cross-field checks and confidence adjustments
 - **REST API**: FastAPI endpoints for single and batch document processing
+- **Dashboard**: Streamlit UI for OCR result visualization with bounding box overlays
 - **CLI**: Batch folder processing with CSV export and accuracy benchmarking
 - **Docker**: Production-ready container with Tesseract and all dependencies
 
 ## Quick Start
 
-### Using Docker (Recommended)
-
-```bash
-docker compose up -d
-curl -X POST -F "file=@invoice.pdf" http://localhost:8000/extract
-```
-
-### Local Installation
+### 1. Install
 
 ```bash
 # Prerequisites: Python 3.11+, Tesseract OCR
 sudo apt install tesseract-ocr tesseract-ocr-eng poppler-utils  # Ubuntu
 brew install tesseract poppler                                    # macOS
 
-# Install
-pip install -r requirements.txt
+# Install Python dependencies
+make install
+```
 
-# Run API server
-python -m src.main
+### 2. Launch the Dashboard
 
-# Or use CLI
-python -m src.cli extract invoice.pdf
-python -m src.cli batch ./invoices -o results.csv
-python -m src.cli benchmark ./invoices ground_truth.json
+The dashboard ships with built-in demo invoice data -- no external data or preparation is needed.
+
+```bash
+make dashboard
+```
+
+Open [http://localhost:8501](http://localhost:8501) in your browser. Toggle "Use demo invoice data" to explore OCR extraction results, confidence scores, and bounding box visualization. You can also upload your own document images (PNG, JPG, TIFF).
+
+### 3. Run the API Server
+
+```bash
+make run
+# API available at http://localhost:8000
+# Swagger docs at http://localhost:8000/docs
+```
+
+### 4. Using Docker (Alternative)
+
+```bash
+docker compose up -d
+curl -X POST -F "file=@invoice.pdf" http://localhost:8000/extract
 ```
 
 ## API Endpoints
@@ -99,17 +110,6 @@ python -m src.cli benchmark ./documents ground_truth.json -o report.txt
 python -m src.cli batch ./documents --no-ml -o results.csv
 ```
 
-## Accuracy Metrics
-
-| Field        | Precision | Recall | F1 Score |
-|--------------|-----------|--------|----------|
-| Date         | 96.2%     | 94.5%  | 0.953    |
-| Vendor       | 92.1%     | 89.3%  | 0.907    |
-| Total Amount | 98.5%     | 97.2%  | 0.978    |
-| Line Items   | 87.3%     | 85.1%  | 0.862    |
-
-Overall Accuracy: 93.5% (Target: >90%)
-
 ## Configuration
 
 Edit `configs/config.yaml`:
@@ -118,8 +118,8 @@ Edit `configs/config.yaml`:
 preprocessing:
   deskew_enabled: true
   denoise_enabled: true
+  denoise_method: bilateral
   binarize_enabled: true
-  denoise_method: gaussian
 
 ocr:
   default_lang: eng
@@ -159,10 +159,12 @@ document-oc/
 │   ├── validation/       # Configurable rules engine with cross-field checks
 │   ├── benchmark/        # Accuracy evaluation with precision/recall/F1
 │   ├── api/              # FastAPI REST endpoints and schemas
+│   ├── dashboard/        # Streamlit UI with OCR result visualization
 │   ├── cli.py            # Batch processing CLI with CSV export
 │   └── utils/            # Configuration and structured logging
 ├── configs/              # YAML configuration files
-├── tests/                # pytest test suite (95%+ coverage)
+├── tests/                # pytest test suite
+├── data/                 # Sample documents (place your own here)
 ├── .github/workflows/    # CI pipeline (lint, test, Docker build)
 ├── Dockerfile            # Multi-stage build with Tesseract
 ├── docker-compose.yml    # Production deployment config
@@ -174,13 +176,15 @@ document-oc/
 ## Development
 
 ```bash
-make install    # Install dependencies
-make test       # Run tests with coverage
-make lint       # Run ruff linter and formatter
-make docker     # Build Docker image
-make docker-up  # Start with docker compose
-make docker-down # Stop containers
-make clean      # Remove __pycache__
+make install      # Install dependencies
+make test         # Run tests with coverage
+make lint         # Run ruff linter and formatter
+make run          # Start API server on port 8000
+make dashboard    # Start Streamlit dashboard on port 8501
+make docker       # Build Docker image
+make docker-up    # Start with docker compose
+make docker-down  # Stop containers
+make clean        # Remove __pycache__
 ```
 
 ## License
