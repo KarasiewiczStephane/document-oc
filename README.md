@@ -183,6 +183,11 @@ make docker-down # Stop containers
 make clean      # Remove __pycache__
 ```
 
+
+## Author
+
+**Stéphane Karasiewicz** — [skarazdata.com](https://skarazdata.com) | [LinkedIn](https://www.linkedin.com/in/stephane-karasiewicz/)
+
 ## License
 
 MIT
